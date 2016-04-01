@@ -1,0 +1,41 @@
+machine:
+  services:
+    - docker
+  environment:
+    dockeruser: ponchov
+    dockermail: alfonsovaldes84@gmail.com
+    dockerpass: clickit_t3ch
+
+dependencies:
+  cache_directories:
+    - "~/docker"
+  override:
+    - docker info
+    - if [[ -e ~/docker/image.tar ]]; then docker load --input ~/docker/image.tar; fi
+    - docker build -t ponchov/proxy .
+    - mkdir -p ~/docker; docker save ponchov/proxy > ~/docker/image.tar
+    - ls ~/docker
+
+test:
+  override:
+    - docker run -d -p 9200:80 ponchov/proxy; sleep 10
+    - curl --retry 10 --retry-delay 5 -v http://localhost:9200
+    - a=$(curl -sI http://localhost:9200| head -n1| awk '{print $2}'); if [[ "$a" = "500" ]]; then exit 1 = $? ; fi
+    - a=$(curl -sI http://localhost:9200| head -n1| awk '{print $2}'); if [[ "$a" = "404" ]]; then exit 1 = $? ; fi
+  post:
+    - docker login -e $dockermail -u $dockeruser -p $dockerpass
+    - docker push ponchov/proxy
+
+deployment:
+  staging:
+    branch: master
+    codedeploy:
+      proxy:
+        application_root: /
+        region: us-west-2
+        revision_location:
+          revision_type: S3
+          s3_location:
+            bucket: circle-testing
+            key_pattern: proxy-{BRANCH}-{SHORT_COMMIT}
+        deployment_group: proxy-deploy

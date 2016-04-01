@@ -1,0 +1,11 @@
+#! /bin/bash
+
+image="ponchov/proxy"
+runImage="proxy"
+
+docker rm -f $runImage
+docker rmi -f $image
+docker pull $image
+docker run -tid -p 80:80 --link wordpress:wordpress.cl3ver.com --link cakephp:cakephp.cl3ver.com --name $runImage $image
+#docker run -tid -p 80:80 --link cakephp:cakephp.cl3ver.com --link nodeapp:node.cl3ver.com --link wordpress:wordpress.cl3ver.com --name $runImage $image
+rm -rf /tmp/*
